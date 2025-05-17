@@ -2,9 +2,20 @@ from fastapi import APIRouter, Request, HTTPException, Header
 from fastapi.responses import JSONResponse
 from telegram_client import app as tg
 import os
-import inspect
 
 router = APIRouter()
+
+def serialize_result(result):
+    # Если объект имеет __dict__, вернём только сериализуемые поля
+    if hasattr(result, "__dict__"):
+        return {
+            k: v for k, v in result.__dict__.items()
+            if not k.startswith("_")
+        }
+    # Если это список объектов — рекурсивно сериализуем
+    elif isinstance(result, list):
+        return [serialize_result(item) for item in result]
+    return result  # если это просто строка, число и т.д.
 
 @router.post("/call")
 async def call_method(request: Request, x_api_key: str = Header(None)):
@@ -23,11 +34,9 @@ async def call_method(request: Request, x_api_key: str = Header(None)):
             func = getattr(tg, method)
             result = await func(**params)
 
-            # Если результат имеет .dict(), сериализуем его
-            if hasattr(result, "dict") and inspect.ismethod(result.dict):
-                result = result.dict()
+            serialized = serialize_result(result)
 
-            return JSONResponse(content={"status": "ok", "result": result})
+            return JSONResponse(content={"status": "ok", "result": serialized})
 
         except AttributeError:
             raise HTTPException(status_code=400, detail=f"Unknown method: {method}")
