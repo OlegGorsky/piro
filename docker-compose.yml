@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+  telegram-api:
+    build: .
+    ports:
+      - "8020:8020"
+    env_file:
+      - .env
+    restart: always
