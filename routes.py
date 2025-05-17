@@ -2,18 +2,15 @@ from fastapi import APIRouter, Request, HTTPException, Header
 from fastapi.responses import JSONResponse
 from telegram_client import app as tg
 import os
-import json
-from pydantic.json import pydantic_encoder
+import inspect
 
 router = APIRouter()
 
 @router.post("/call")
 async def call_method(request: Request, x_api_key: str = Header(None)):
-    # Проверка API-ключа
     if x_api_key != os.getenv("API_KEY"):
         raise HTTPException(status_code=403, detail="Invalid API key")
 
-    # Получение тела запроса
     body = await request.json()
     method = body.get("method")
     params = body.get("params", {})
@@ -21,18 +18,18 @@ async def call_method(request: Request, x_api_key: str = Header(None)):
     if not method:
         raise HTTPException(status_code=400, detail="Missing method")
 
-    # Выполнение метода Telegram API
     async with tg:
         try:
             func = getattr(tg, method)
             result = await func(**params)
 
-            # Безопасная сериализация результата
-            return JSONResponse(
-                content={"status": "ok", "result": json.loads(json.dumps(result, default=pydantic_encoder))}
-            )
+            # Если результат имеет .dict(), значит это Pyrogram-объект → сериализуем
+            if hasattr(result, "dict") and inspect.ismethod(result.dict):
+                result = result.dict()
+
+            return JSONResponse(content={"status": "ok", "result": result})
 
         except AttributeError:
-            raise HTTPException(status_code=400, detail=f"Unknown method: {method}")
+            raise HTTPException(status_code=400, detail=f"Unknown method: {method}" )
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)})
