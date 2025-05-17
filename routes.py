@@ -23,13 +23,13 @@ async def call_method(request: Request, x_api_key: str = Header(None)):
             func = getattr(tg, method)
             result = await func(**params)
 
-            # Если результат имеет .dict(), значит это Pyrogram-объект → сериализуем
+            # Если результат имеет .dict(), сериализуем его
             if hasattr(result, "dict") and inspect.ismethod(result.dict):
                 result = result.dict()
 
             return JSONResponse(content={"status": "ok", "result": result})
 
         except AttributeError:
-            raise HTTPException(status_code=400, detail=f"Unknown method: {method}" )
+            raise HTTPException(status_code=400, detail=f"Unknown method: {method}")
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e)})
+            raise HTTPException(status_code=500, detail=str(e))
