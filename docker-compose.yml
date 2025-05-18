@@ -7,6 +7,6 @@ services:
       - "8020:8000"
     env_file:
       - .env
-    restart: always
     volumes:
       - /data/coolify/applications/tskw888wkko8ok0csos0sokc/user_session.session:/app/user_session.session
+    restart: always
