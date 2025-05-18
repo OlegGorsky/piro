@@ -8,3 +8,5 @@ services:
     env_file:
       - .env
     restart: always
+    volumes:
+      - ./user_session.session:/app/user_session.session  # 👈 монтируем .session внутрь контейнера
